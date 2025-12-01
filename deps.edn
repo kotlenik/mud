@@ -1,0 +1,20 @@
+{:paths     ["src" "dev"]
+ :deps      {org.clojure/clojure  {:mvn/version "1.12.3"}
+             com.rpl/rama {:mvn/version "1.2.0" :exclusions
+                           [io.netty/netty-codec-native-quic]}
+             com.rpl/rama-helpers {:mvn/version "0.10.0" :exclusions
+                                   [io.netty/netty-codec-native-quic]}}
+ :mvn/repos {"red-planet-labs" {:url "https://nexus.redplanetlabs.com/repository/maven-public-releases/"}}
+ :aliases
+ {:provided {:extra-deps {com.rpl/rama {:mvn/version "1.2.0" :exclusions
+                                        [io.netty/netty-codec-native-quic]}
+                          com.rpl/rama-helpers {:mvn/version "0.10.0" :exclusions
+                                                [io.netty/netty-codec-native-quic]}}}
+
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.11"}}
+          :ns-default build
+          :override-deps {com.rpl/rama-helpers nil
+                          io.netty/netty-codec-native-quic nil}}
+  :dev {:extra-paths ["dev" "resources"]}
+  :test {:extra-paths ["test" "resources"]
+         :extra-deps {}}}}
