@@ -16,7 +16,6 @@
           outgoing-transfers (foreign-pstate ipc module-name "$$outgoing-transfers")
           incoming-transfers (foreign-pstate ipc module-name "$$incoming-transfers")
 
-          ;; Declare some constants to make the test code easier to read
           alice-id 0
           bob-id 1
           charlie-id 2]
@@ -27,14 +26,11 @@
 
       (rtest/wait-for-microbatch-processed-count ipc module-name "banking" 3)
 
-      ;; This transfer will succeed.
-      (foreign-append! transfer-depot (mm/->Transfer "alice->bob1" alice-id bob-id 50))
-      ;; This transfer will fail because alice has only 150 funds after the first transfer.
-      (foreign-append! transfer-depot (mm/->Transfer "alice->charlie1" alice-id charlie-id 160))
-      ;; This transfer will succeed.
-      (foreign-append! transfer-depot (mm/->Transfer "alice->charlie2" alice-id charlie-id 25))
-      ;; This transfer will succeed.
-      (foreign-append! transfer-depot (mm/->Transfer "charlie->bob1" charlie-id bob-id 10))
+      ;; transfer-id is now auto-generated inside the topology as a UUID v7 string
+      (foreign-append! transfer-depot (mm/->Transfer alice-id bob-id 50))
+      (foreign-append! transfer-depot (mm/->Transfer alice-id charlie-id 160))
+      (foreign-append! transfer-depot (mm/->Transfer alice-id charlie-id 25))
+      (foreign-append! transfer-depot (mm/->Transfer charlie-id bob-id 10))
 
       (rtest/wait-for-microbatch-processed-count ipc module-name "banking" 7)
 
@@ -44,29 +40,34 @@
       (is (= 115 (foreign-select-one (keypath charlie-id) funds)))
 
       ;; Verify the outgoing transfers of alice
+      ;; Keys are auto-generated UUID v7 strings; check values only
       (let [transfers (foreign-select [(keypath alice-id) ALL] outgoing-transfers)]
         (is (= 3 (count transfers)))
-        (is (= #{["alice->bob1" {:to-user-id bob-id :amt 50 :success? true}]
-                 ["alice->charlie1" {:to-user-id charlie-id :amt 160 :success? false}]
-                 ["alice->charlie2" {:to-user-id charlie-id :amt 25 :success? true}]}
-               (set transfers))))
+        (is (every? string? (map first transfers)))
+        (is (= #{{:to-user-id bob-id     :amt 50  :success? true}
+                 {:to-user-id charlie-id :amt 160 :success? false}
+                 {:to-user-id charlie-id :amt 25  :success? true}}
+               (set (map second transfers)))))
 
       ;; Verify the outgoing transfers of charlie
       (let [transfers (foreign-select [(keypath charlie-id) ALL] outgoing-transfers)]
         (is (= 1 (count transfers)))
-        (is (= [["charlie->bob1" {:to-user-id bob-id :amt 10 :success? true}]]
-               transfers)))
+        (is (every? string? (map first transfers)))
+        (is (= #{{:to-user-id bob-id :amt 10 :success? true}}
+               (set (map second transfers)))))
 
       ;; Verify the incoming transfers of bob
       (let [transfers (foreign-select [(keypath bob-id) ALL] incoming-transfers)]
         (is (= 2 (count transfers)))
-        (is (= #{["alice->bob1" {:from-user-id alice-id :amt 50 :success? true}]
-                 ["charlie->bob1" {:from-user-id charlie-id :amt 10 :success? true}]}
-               (set transfers))))
+        (is (every? string? (map first transfers)))
+        (is (= #{{:from-user-id alice-id   :amt 50 :success? true}
+                 {:from-user-id charlie-id :amt 10 :success? true}}
+               (set (map second transfers)))))
 
       ;; Verify the incoming transfers of charlie
       (let [transfers (foreign-select [(keypath charlie-id) ALL] incoming-transfers)]
         (is (= 2 (count transfers)))
-        (is (= #{["alice->charlie1" {:from-user-id alice-id :amt 160 :success? false}]
-                 ["alice->charlie2" {:from-user-id alice-id :amt 25 :success? true}]}
-               (set transfers)))))))
+        (is (every? string? (map first transfers)))
+        (is (= #{{:from-user-id alice-id :amt 160 :success? false}
+                 {:from-user-id alice-id :amt 25  :success? true}}
+               (set (map second transfers))))))))

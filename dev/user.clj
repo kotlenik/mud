@@ -39,11 +39,11 @@
         depot (foreign-depot manager module-name depot-name)]
     (foreign-append! depot (mm/->Deposit user-id amt))))
 
-(defn append-transfer [manager tx-id from-user-id to-user-id amt]
+(defn append-transfer [manager from-user-id to-user-id amt]
   (let [module-name (get-module-name mm/BankDemo)
         depot-name "*transfer-depot"
         depot (foreign-depot manager module-name depot-name)]
-    (foreign-append! depot (mm/->Transfer tx-id from-user-id to-user-id amt))))
+    (foreign-append! depot (mm/->Transfer from-user-id to-user-id amt))))
 
 (defn read-funds [manager user-id]
   (let [module-name (get-module-name mm/BankDemo)
@@ -101,19 +101,19 @@
 
       (rtest/wait-for-microbatch-processed-count ipc module-name "banking" 1)
 
-      (foreign-append! transfer-depot (mm/->Transfer "tx1" alice-id bob-id 150))
+      (foreign-append! transfer-depot (mm/->Transfer alice-id bob-id 150))
 
       (rtest/wait-for-microbatch-processed-count ipc module-name "banking" 2)
 
-      (foreign-append! transfer-depot (mm/->Transfer "tx2" alice-id charlie-id 100))
+      (foreign-append! transfer-depot (mm/->Transfer alice-id charlie-id 100))
 
       (rtest/wait-for-microbatch-processed-count ipc module-name "banking" 3)
 
-      (foreign-append! transfer-depot (mm/->Transfer "tx3" bob-id charlie-id 50))
+      (foreign-append! transfer-depot (mm/->Transfer bob-id charlie-id 50))
 
-      (foreign-append! transfer-depot (mm/->Transfer "tx4" charlie-id alice-id 50))
+      (foreign-append! transfer-depot (mm/->Transfer charlie-id alice-id 50))
 
-      (foreign-append! transfer-depot (mm/->Transfer "tx5" charlie-id dave-id 10))
+      (foreign-append! transfer-depot (mm/->Transfer charlie-id dave-id 10))
 
       (rtest/wait-for-microbatch-processed-count ipc module-name "banking" 6)
 
