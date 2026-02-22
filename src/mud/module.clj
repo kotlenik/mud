@@ -3,9 +3,13 @@
         [com.rpl.rama.path])
   (:require [com.rpl.rama.ops :as ops]
             [com.rpl.rama.aggs :as ags]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clj-uuid :as uuid]))
 
-(defrecord Transfer [transfer-id from-user-id to-user-id amt])
+(defrecord Transfer [from-user-id to-user-id amt])
+
+(defn gen-transfer-id [] (str (uuid/v7)))
+
 (defrecord Deposit [user-id amt])
 
 (defmodule BankDemo
@@ -30,7 +34,8 @@
                                  {:subindex? true})})
     (<<sources mb
                (source> *transfer-depot :> %microbatch)
-               (%microbatch :> {:keys [*transfer-id *from-user-id *to-user-id *amt]})
+               (%microbatch :> {:keys [*from-user-id *to-user-id *amt]})
+               (gen-transfer-id :> *transfer-id)
                (local-select> [(keypath *from-user-id) (nil->val 0)] $$funds :> *funds)
                (>= *funds *amt :> *success?)
                (<<if *success?
